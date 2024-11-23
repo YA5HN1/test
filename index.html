@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Caption Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2D3436;
+            --accent: #6c5ce7;
+            --background: #ffffff;
+            --error: #d63031;
+            --success: #00b894;
+            --text: #2d3436;
+            --text-light: #636e72;
+            --border: #dfe6e9;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .container {
+            background-color: var(--background);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 700px;
+            transition: transform 0.3s ease;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--primary);
+        }
+
+        .upload-section {
+            border: 2px dashed var(--border);
+            border-radius: 0.75rem;
+            padding: 2.5rem 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: #fafafa;
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .upload-section input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .upload-icon {
+            width: 64px;
+            height: 64px;
+            background: rgba(108, 92, 231, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 1.75rem;
+            color: var(--accent);
+        }
+
+        .upload-text {
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .upload-subtext {
+            font-size: 0.875rem;
+            color: var(--text-light);
+            margin-bottom: 1rem;
+        }
+
+        .choose-file-btn {
+            background: transparent;
+            border: 2px solid var(--accent);
+            color: var(--accent);
+            padding: 0.5rem 1.25rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .choose-file-btn:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        .file-types {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            margin-top: 0.75rem;
+        }
+
+        .upload-section.drag-over {
+            background: rgba(108, 92, 231, 0.05);
+            border-color: var(--accent);
+            transform: scale(1.01);
+        }
+
+        #videoPreview {
+            width: 100%;
+            border-radius: 0.75rem;
+            margin: 1.5rem 0;
+            display: none;
+            background: #000;
+        }
+
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.875rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: auto;
+            min-width: 150px;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(108, 92, 231, 0.2);
+        }
+
+        button:disabled {
+            background: var(--border);
+            cursor: not-allowed;
+        }
+
+        .copy-btn {
+            background: transparent;
+            color: var(--accent);
+            border: 2px solid var(--accent);
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        #captionOutput {
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            background: #fafafa;
+            font-size: 1rem;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.8;
+        }
+
+        #captionOutput .caption-text {
+            margin-bottom: 1rem;
+        }
+
+        #captionOutput .hashtag {
+            color: var(--accent);
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        #captionOutput .hashtag:hover {
+            opacity: 0.8;
+        }
+
+        #captionOutput .emoji {
+            font-size: 1.2em;
+            vertical-align: middle;
+        }
+
+        #captionOutput strong {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        #captionOutput .quote {
+            border-left: 3px solid var(--accent);
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: var(--text-light);
+            font-style: italic;
+        }
+
+        #captionOutput .caption-list {
+            list-style: none;
+            padding-left: 0;
+            margin: 1rem 0;
+        }
+
+        #captionOutput .caption-list li {
+            padding-left: 1.5rem;
+            position: relative;
+            margin: 0.5rem 0;
+        }
+
+        #captionOutput .caption-list li:before {
+            content: "•";
+            color: var(--accent);
+            position: absolute;
+            left: 0.5rem;
+            font-weight: bold;
+        }
+
+        /* Dark mode adjustments */
+        @media (prefers-color-scheme: dark) {
+            #captionOutput .hashtag {
+                color: #a29bfe;
+            }
+
+            #captionOutput strong {
+                color: #a29bfe;
+            }
+
+            #captionOutput .quote {
+                border-left-color: #a29bfe;
+            }
+
+            #captionOutput .caption-list li:before {
+                color: #a29bfe;
+            }
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 1.5rem 0;
+        }
+
+        .spinner {
+            width: 2.5rem;
+            height: 2.5rem;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        .error {
+            color: var(--error);
+            background: rgba(214, 48, 49, 0.1);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            display: none;
+            text-align: center;
+        }
+
+        .success-message {
+            color: var(--success);
+            text-align: center;
+            margin-top: 0.75rem;
+            display: none;
+            font-size: 0.875rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 640px) {
+            .container {
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .upload-section {
+                padding: 1.5rem;
+            }
+
+            button {
+                width: 100%;
+                margin: 0.5rem 0;
+            }
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary: #f5f6fa;
+                --background: #2D3436;
+                --text: #f5f6fa;
+                --text-light: #b2bec3;
+                --border: #636e72;
+            }
+
+            body {
+                background-color: #1e272e;
+            }
+
+            .upload-section {
+                background: rgba(255, 255, 255, 0.03);
+            }
+
+            #captionOutput {
+                background: rgba(255, 255, 255, 0.03);
+            }
+
+            .upload-icon {
+                background: rgba(108, 92, 231, 0.2);
+            }
+            
+            .choose-file-btn {
+                background: rgba(108, 92, 231, 0.1);
+            }
+            
+            .choose-file-btn:hover {
+                background: var(--accent);
+            }
+        }
+
+        .media-wrapper {
+            width: 100%;
+            height: 400px; /* Fixed height */
+            border-radius: 0.75rem;
+            overflow: hidden;
+            background-color: #000;
+            position: relative;
+        }
+
+        #videoPreview, #imagePreview {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Maintains aspect ratio */
+            background: #000;
+            border-radius: 0.75rem;
+            box-shadow: var(--shadow);
+        }
+
+        /* Dark mode adjustment */
+        @media (prefers-color-scheme: dark) {
+            .media-wrapper {
+                background-color: #1a1a1a;
+            }
+        }
+
+        /* Responsive height for mobile */
+        @media (max-width: 640px) {
+            .media-wrapper {
+                height: 300px;
+            }
+        }
+
+        .caption-container {
+            position: relative;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .caption-container:hover {
+            background: rgba(108, 92, 231, 0.05);
+        }
+
+        .caption-copy-btn {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
+            min-width: auto;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .caption-container:hover .caption-copy-btn {
+            opacity: 1;
+        }
+
+        .caption-copy-btn:hover {
+            background: var(--accent);
+            color: white;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .caption-number {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✨ Instagram Caption Generator</h1>
+        
+        <div class="upload-section" id="uploadSection">
+            <input type="file" id="mediaInput" accept="video/*,image/*">
+            <div class="upload-content">
+                <div class="upload-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                </div>
+                <h3 class="upload-text">Upload Media</h3>
+                <p class="upload-subtext">Drag and drop your image or video here or</p>
+                <button class="choose-file-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    Choose File
+                </button>
+                <p class="file-types">Images: JPG, PNG, GIF • Videos: MP4, MOV, AVI</p>
+            </div>
+        </div>
+
+        <div id="mediaPreviewContainer" style="display: none; margin: 1.5rem 0;">
+            <div class="media-wrapper">
+                <video id="videoPreview" controls style="display: none;"></video>
+                <img id="imagePreview" style="display: none;">
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 1rem; add ">
+            <button id="generateBtn" disabled>
+                <span class="btn-text">Generate Caption</span>
+            </button>
+        </div>
+
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Creating your perfect caption... ✍️</p>
+        </div>
+
+        <div class="error" id="errorMessage"></div>
+
+        <div id="captionOutput"></div>
+        <div style="text-align: center;">
+            <button class="copy-btn" id="copyBtn" style="display: none;">Copy Caption</button>
+        </div>
+        <div class="success-message" id="successMessage">Caption copied! 📋</div>
+    </div>
+
+    <script>
+        const API_KEY = 'AIzaSyBoKzwUFlqFJd4B7VK3Xg9i8D37-0wdLP0';
+        const MODEL_NAME = 'gemini-1.5-flash';
+        
+        const mediaInput = document.getElementById('mediaInput');
+        const mediaPreviewContainer = document.getElementById('mediaPreviewContainer');
+        const videoPreview = document.getElementById('videoPreview');
+        const imagePreview = document.getElementById('imagePreview');
+        const generateBtn = document.getElementById('generateBtn');
+        const captionOutput = document.getElementById('captionOutput');
+        const loadingDiv = document.querySelector('.loading');
+        const errorMessage = document.getElementById('errorMessage');
+
+        let mediaFile = null;
+
+        mediaInput.addEventListener('change', (e) => {
+            mediaFile = e.target.files[0];
+            if (mediaFile) {
+                const fileUrl = URL.createObjectURL(mediaFile);
+                mediaPreviewContainer.style.display = 'block';
+                
+                // Reset previews
+                videoPreview.style.display = 'none';
+                imagePreview.style.display = 'none';
+                
+                if (mediaFile.type.startsWith('video/')) {
+                    videoPreview.src = fileUrl;
+                    videoPreview.style.display = 'block';
+                } else if (mediaFile.type.startsWith('image/')) {
+                    imagePreview.src = fileUrl;
+                    imagePreview.style.display = 'block';
+                }
+                
+                generateBtn.disabled = false;
+                captionOutput.textContent = '';
+                errorMessage.style.display = 'none';
+            }
+        });
+
+        generateBtn.addEventListener('click', async () => {
+            if (!mediaFile) return;
+
+            try {
+                loadingDiv.style.display = 'block';
+                errorMessage.style.display = 'none';
+                generateBtn.disabled = true;
+
+                const base64Media = await convertToBase64(mediaFile);
+                const promptText = mediaFile.type.startsWith('video/') 
+                    ? "Generate an engaging Instagram caption for this video. Include relevant hashtags and emojis. Make it attention-grabbing and trendy keep it instagram algorithm friendely ."
+                    : "Generate an engaging Instagram caption for this image. Include relevant hashtags and emojis. Make it attention-grabbing and trendy keep it instagram algorithm friendely .";
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-goog-api-key': API_KEY
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                inlineData: {
+                                    mimeType: mediaFile.type,
+                                    data: base64Media
+                                }
+                            }, {
+                                text: promptText
+                            }]
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to generate caption');
+                }
+
+                const data = await response.json();
+                const caption = data.candidates[0].content.parts[0].text;
+                captionOutput.innerHTML = formatGeminiOutput(caption);
+                copyBtn.style.display = 'inline-block';
+
+            } catch (error) {
+                errorMessage.textContent = 'Error: ' + error.message;
+                errorMessage.style.display = 'block';
+            } finally {
+                loadingDiv.style.display = 'none';
+                generateBtn.disabled = false;
+            }
+        });
+
+        function convertToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => {
+                    const base64String = reader.result.split(',')[1];
+                    resolve(base64String);
+                };
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        const copyBtn = document.getElementById('copyBtn');
+        const successMessage = document.getElementById('successMessage');
+
+        copyBtn.addEventListener('click', () => {
+            // Get text content without HTML tags
+            const plainText = captionOutput.textContent;
+            navigator.clipboard.writeText(plainText)
+                .then(() => {
+                    successMessage.style.display = 'block';
+                    setTimeout(() => {
+                        successMessage.style.display = 'none';
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Failed to copy text: ', err);
+                });
+        });
+
+        // Replace the existing formatGeminiOutput function with this improved version
+        function formatGeminiOutput(text) {
+            if (!text) return '';
+            
+            // Split text into paragraphs
+            let paragraphs = text.split('\n\n');
+            let formattedHtml = '';
+            
+            paragraphs.forEach((paragraph) => {
+                if (!paragraph.trim()) return;
+                
+                // Check if paragraph contains hashtags (indicating it's a caption)
+                if (paragraph.includes('#')) {
+                    formattedHtml += `
+                    <div class="caption-container">
+                        <button class="caption-copy-btn" onclick="copySingleCaption(this)">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            Copy
+                        </button>
+                        <div class="caption-content">
+                    `;
+                    
+                    // Process the caption content
+                    let lines = paragraph.split('\n');
+                    let inList = false;
+
+                    lines.forEach(line => {
+                        line = line.trim();
+                        if (!line) return;
+
+                        // Check if the entire line is wrapped in ** (heading)
+                        if (line.startsWith('**') && line.endsWith('**') && line.length > 4) {
+                            const headingText = line.slice(2, -2);
+                            formattedHtml += `<h3 class="caption-heading">${headingText}</h3>\n`;
+                            return;
+                        }
+
+                        // Handle inline bold text (**text**)
+                        line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+                        // Handle hashtags (#text)
+                        line = line.replace(/(#\w+)/g, '<span class="hashtag">$1</span>');
+
+                        // Handle emojis
+                        line = line.replace(/([\u{1F300}-\u{1F9FF}])/gu, '<span class="emoji">$1</span>');
+
+                        // Handle quotes
+                        if (line.startsWith('>')) {
+                            formattedHtml += `<p class="quote">${line.substring(1).trim()}</p>\n`;
+                        }
+                        // Handle bullet points
+                        else if (line.startsWith('*')) {
+                            if (!inList) {
+                                formattedHtml += '<ul class="caption-list">\n';
+                                inList = true;
+                            }
+                            formattedHtml += `<li>${line.substring(1).trim()}</li>\n`;
+                        }
+                        // Regular paragraph
+                        else {
+                            if (inList) {
+                                formattedHtml += '</ul>\n';
+                                inList = false;
+                            }
+                            formattedHtml += `<p class="caption-text">${line}</p>\n`;
+                        }
+                    });
+
+                    if (inList) {
+                        formattedHtml += '</ul>\n';
+                    }
+
+                    formattedHtml += `
+                            </div>
+                        </div>`;
+                } else {
+                    // For non-caption paragraphs, check if it's a heading
+                    if (paragraph.startsWith('**') && paragraph.endsWith('**') && paragraph.length > 4) {
+                        const headingText = paragraph.slice(2, -2);
+                        formattedHtml += `<h3 class="caption-heading">${headingText}</h3>\n`;
+                    } else {
+                        formattedHtml += `<p class="caption-text">${paragraph}</p>\n`;
+                    }
+                }
+            });
+
+            return formattedHtml;
+        }
+
+        // Add this new function for copying individual captions
+        function copySingleCaption(button) {
+            const captionContainer = button.closest('.caption-container');
+            const captionContent = captionContainer.querySelector('.caption-content');
+            const plainText = captionContent.textContent.trim();
+
+            navigator.clipboard.writeText(plainText)
+                .then(() => {
+                    // Show temporary success state on the button
+                    const originalText = button.innerHTML;
+                    button.innerHTML = `
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Copied!
+                    `;
+                    button.style.background = 'var(--success)';
+                    button.style.borderColor = 'var(--success)';
+                    button.style.color = 'white';
+
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                        button.style.background = '';
+                        button.style.borderColor = '';
+                        button.style.color = '';
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Failed to copy text: ', err);
+                    button.textContent = 'Error!';
+                    button.style.background = 'var(--error)';
+                    setTimeout(() => {
+                        button.textContent = 'Copy';
+                        button.style.background = '';
+                    }, 2000);
+                });
+        }
+
+        const uploadSection = document.getElementById('uploadSection');
+
+        // Drag and drop functionality
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('drag-over');
+        });
+
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('drag-over');
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && (files[0].type.startsWith('video/') || files[0].type.startsWith('image/'))) {
+                mediaInput.files = files;
+                mediaInput.dispatchEvent(new Event('change'));
+            }
+        });
+
+        // Click anywhere to trigger file input
+        uploadSection.addEventListener('click', () => {
+            mediaInput.click();
+        });
+    </script>
+</body>
+</html>
