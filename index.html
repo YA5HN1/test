@@ -401,7 +401,7 @@
             position: absolute;
             top: 0.75rem;
             right: 0.75rem;
-            background: transparent;
+            background: rgb(255, 255, 255);
             color: var(--accent);
             border: 1px solid var(--accent);
             padding: 0.25rem 0.75rem;
@@ -429,6 +429,59 @@
             font-size: 0.75rem;
             color: var(--text-light);
             margin-bottom: 0.5rem;
+        }
+
+        /* Add these media queries for mobile devices */
+        @media (max-width: 768px) {
+            .caption-copy-btn {
+                opacity: 1; /* Always visible on mobile */
+                background: rgba(108, 92, 231, 0.1); /* Light purple background */
+                border: 1px solid var(--accent);
+                color: var(--accent);
+            }
+
+            .caption-copy-btn:hover {
+                background: var(--accent);
+                color: white;
+            }
+        }
+
+        /* Dark mode adjustments */
+        @media (prefers-color-scheme: dark) {
+            .caption-copy-btn {
+                background: rgba(108, 92, 231, 0.2);
+                border-color: #a29bfe;
+                color: #a29bfe;
+            }
+
+            .caption-copy-btn:hover {
+                background: #a29bfe;
+                color: #2d3436;
+            }
+
+            @media (max-width: 768px) {
+                .caption-copy-btn {
+                    background: rgba(162, 155, 254, 0.2);
+                }
+            }
+        }
+
+        .caption-heading {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin: 1rem 0 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--accent);
+            display: inline-block;
+        }
+
+        /* Dark mode adjustment */
+        @media (prefers-color-scheme: dark) {
+            .caption-heading {
+                color: #a29bfe;
+                border-bottom-color: #a29bfe;
+            }
         }
     </style>
 </head>
@@ -488,7 +541,6 @@
     </div>
 
     <script>
-        const API_KEY = 'AIzaSyBoKzwUFlqFJd4B7VK3Xg9i8D37-0wdLP0';
         const MODEL_NAME = 'gemini-1.5-flash';
         
         const mediaInput = document.getElementById('mediaInput');
@@ -526,24 +578,54 @@
             }
         });
 
-        generateBtn.addEventListener('click', async () => {
-            if (!mediaFile) return;
+        const API_KEYS = [
+            'AIzaSyBoKzwUFlqFJd4B7VK3Xg9i8D37-0wdLP0',
+            'AIzaSyAcso71boW_tFlw7cBWcvDAuR_ZnEIPraI',
+            'AIzaSyDTn0sLhkQj2sPwlZn_WQb08g6KHhIKM3Y',
+            'AIzaSyAiDUZPk1W292aX-thir7iIL0FLBvCr2os'
+        ];
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        let currentApiKeyIndex = 0;
+        const shuffledApiKeys = shuffleArray([...API_KEYS]);
+
+        function getNextApiKey() {
+            const apiKey = shuffledApiKeys[currentApiKeyIndex];
+            currentApiKeyIndex = (currentApiKeyIndex + 1) % shuffledApiKeys.length;
+            return apiKey;
+        }
+
+        let failedApiKeys = new Set();
+
+        async function makeApiRequest(mediaFile, retryCount = 0) {
+            if (retryCount >= API_KEYS.length) {
+                throw new Error('All API keys have failed. Please try again later.');
+            }
+
+            const currentApiKey = getNextApiKey();
+            
+            if (failedApiKeys.has(currentApiKey)) {
+                return makeApiRequest(mediaFile, retryCount + 1);
+            }
 
             try {
-                loadingDiv.style.display = 'block';
-                errorMessage.style.display = 'none';
-                generateBtn.disabled = true;
-
                 const base64Media = await convertToBase64(mediaFile);
                 const promptText = mediaFile.type.startsWith('video/') 
-                    ? "Generate an engaging Instagram caption for this video. Include relevant hashtags and emojis. Make it attention-grabbing and trendy keep it instagram algorithm friendely ."
-                    : "Generate an engaging Instagram caption for this image. Include relevant hashtags and emojis. Make it attention-grabbing and trendy keep it instagram algorithm friendely .";
+                    ? "Create an engaging Instagram caption with trending keywords, emojis, and hashtags. Add a strong CTA to boost likes, comments, shares, and follows. write hashtags with captions"
+                    : "Create an engaging Instagram caption with trending keywords, emojis, and hashtags. Add a strong CTA to boost likes, comments, shares, and follows. write hashtags with captions";
 
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'x-goog-api-key': API_KEY
+                        'x-goog-api-key': currentApiKey
                     },
                     body: JSON.stringify({
                         contents: [{
@@ -560,10 +642,27 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to generate caption');
+                    failedApiKeys.add(currentApiKey);
+                    return makeApiRequest(mediaFile, retryCount + 1);
                 }
 
-                const data = await response.json();
+                return await response.json();
+
+            } catch (error) {
+                failedApiKeys.add(currentApiKey);
+                return makeApiRequest(mediaFile, retryCount + 1);
+            }
+        }
+
+        generateBtn.addEventListener('click', async () => {
+            if (!mediaFile) return;
+
+            try {
+                loadingDiv.style.display = 'block';
+                errorMessage.style.display = 'none';
+                generateBtn.disabled = true;
+
+                const data = await makeApiRequest(mediaFile);
                 const caption = data.candidates[0].content.parts[0].text;
                 captionOutput.innerHTML = formatGeminiOutput(caption);
                 copyBtn.style.display = 'inline-block';
@@ -574,6 +673,10 @@
             } finally {
                 loadingDiv.style.display = 'none';
                 generateBtn.disabled = false;
+                
+                setTimeout(() => {
+                    failedApiKeys.clear();
+                }, 60000);
             }
         });
 
@@ -641,40 +744,41 @@
                         if (!line) return;
 
                         // Check if the entire line is wrapped in ** (heading)
-                        if (line.startsWith('**') && line.endsWith('**') && line.length > 4) {
+                        if (line.match(/^\*\*.*\*\*$/)) {
                             const headingText = line.slice(2, -2);
                             formattedHtml += `<h3 class="caption-heading">${headingText}</h3>\n`;
-                            return;
-                        }
-
-                        // Handle inline bold text (**text**)
-                        line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-                        // Handle hashtags (#text)
-                        line = line.replace(/(#\w+)/g, '<span class="hashtag">$1</span>');
-
-                        // Handle emojis
-                        line = line.replace(/([\u{1F300}-\u{1F9FF}])/gu, '<span class="emoji">$1</span>');
-
-                        // Handle quotes
-                        if (line.startsWith('>')) {
-                            formattedHtml += `<p class="quote">${line.substring(1).trim()}</p>\n`;
-                        }
-                        // Handle bullet points
-                        else if (line.startsWith('*')) {
-                            if (!inList) {
-                                formattedHtml += '<ul class="caption-list">\n';
-                                inList = true;
-                            }
-                            formattedHtml += `<li>${line.substring(1).trim()}</li>\n`;
-                        }
-                        // Regular paragraph
+                        } 
+                        // Handle other formatting
                         else {
-                            if (inList) {
-                                formattedHtml += '</ul>\n';
-                                inList = false;
+                            // Handle inline bold text (**text**)
+                            line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+                            // Handle hashtags (#text)
+                            line = line.replace(/(#\w+)/g, '<span class="hashtag">$1</span>');
+
+                            // Handle emojis
+                            line = line.replace(/([\u{1F300}-\u{1F9FF}])/gu, '<span class="emoji">$1</span>');
+
+                            // Handle quotes
+                            if (line.startsWith('>')) {
+                                formattedHtml += `<p class="quote">${line.substring(1).trim()}</p>\n`;
                             }
-                            formattedHtml += `<p class="caption-text">${line}</p>\n`;
+                            // Handle bullet points
+                            else if (line.startsWith('*')) {
+                                if (!inList) {
+                                    formattedHtml += '<ul class="caption-list">\n';
+                                    inList = true;
+                                }
+                                formattedHtml += `<li>${line.substring(1).trim()}</li>\n`;
+                            }
+                            // Regular paragraph
+                            else {
+                                if (inList) {
+                                    formattedHtml += '</ul>\n';
+                                    inList = false;
+                                }
+                                formattedHtml += `<p class="caption-text">${line}</p>\n`;
+                            }
                         }
                     });
 
@@ -687,10 +791,12 @@
                         </div>`;
                 } else {
                     // For non-caption paragraphs, check if it's a heading
-                    if (paragraph.startsWith('**') && paragraph.endsWith('**') && paragraph.length > 4) {
+                    if (paragraph.match(/^\*\*.*\*\*$/)) {
                         const headingText = paragraph.slice(2, -2);
                         formattedHtml += `<h3 class="caption-heading">${headingText}</h3>\n`;
                     } else {
+                        // Handle inline bold text in non-caption paragraphs
+                        paragraph = paragraph.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                         formattedHtml += `<p class="caption-text">${paragraph}</p>\n`;
                     }
                 }
